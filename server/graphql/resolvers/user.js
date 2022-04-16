@@ -2,7 +2,6 @@ const { PubSub } = require("graphql-subscriptions");
 const { AuthenticationError, UserInputError } = require("apollo-server");
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
 const Message = require("../../models/Message");
 const User = require("../../models/User");
 const {
@@ -12,18 +11,11 @@ const {
 
 const pubsub = new PubSub();
 
-const SECRET_KEY = process.env.SECRET_KEY;
-
-function generateToken(user) {
-  return jwt.sign(
-    {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-    },
-    SECRET_KEY,
-    { expiresIn: "1h" }
-  );
+async function generateToken(user) {
+  const idToken = await bcrypt.hash(user.id, 12);
+  const emailToken = await bcrypt.hash(user.email, 12);
+  const passwordToken = await bcrypt.hash(user.password, 12);
+  return idToken + emailToken + passwordToken;
 }
 
 module.exports = {
@@ -51,6 +43,7 @@ module.exports = {
       });
 
       const res = await newUser.save();
+      const token = generateToken(res);
 
       const { _id, timestamps } = res;
       pubsub.publish("USER_LOGED", {
@@ -61,6 +54,7 @@ module.exports = {
           password: newPassword,
           timestamps,
           isOnline: true,
+          token,
         },
       });
 
@@ -69,8 +63,6 @@ module.exports = {
       pubsub.publish("GET_ONLINE_USER_COUNT", {
         getOnlineUserCount: onlineUsers,
       });
-
-      const token = generateToken(res);
 
       return { ...res._doc, token };
     },
@@ -90,6 +82,20 @@ module.exports = {
 
       if (user.isOnline) return user;
       const { _id, name, timestamps } = user;
+
+      const updatedUser = await User.findOneAndUpdate(
+        { _id: _id.toString() },
+        {
+          name,
+          email,
+          password: user.password,
+          timestamps,
+          isOnline: true,
+        },
+        { new: true }
+      );
+      const token = generateToken(updatedUser);
+
       pubsub.publish("USER_LOGED", {
         userLoged: {
           _id,
@@ -98,28 +104,15 @@ module.exports = {
           password,
           timestamps,
           isOnline: true,
+          token,
         },
       });
-
-      const updatedUser = await User.findOneAndUpdate(
-        { _id: _id.toString() },
-        {
-          name: user.name,
-          email: user.email,
-          password: user.password,
-          timestamps: user.timestamps,
-          isOnline: true,
-        },
-        { new: true }
-      );
 
       const onlineUsers = (await User.find({ isOnline: true })).length;
 
       pubsub.publish("GET_ONLINE_USER_COUNT", {
         getOnlineUserCount: onlineUsers,
       });
-
-      const token = generateToken(updatedUser);
 
       return { ...updatedUser._doc, token };
     },
@@ -134,16 +127,7 @@ module.exports = {
       if (!user.isOnline) return "Logout Successfully";
 
       const { _id, name, timestamps } = user;
-      pubsub.publish("USER_LOGED", {
-        userLoged: {
-          _id,
-          name,
-          email,
-          password,
-          timestamps,
-          isOnline: false,
-        },
-      });
+
       const updatedUser = await User.findOneAndUpdate(
         { _id: _id.toString() },
         {
@@ -156,6 +140,20 @@ module.exports = {
         },
         { new: true }
       );
+
+      const token = generateToken(updatedUser);
+
+      pubsub.publish("USER_LOGED", {
+        userLoged: {
+          _id,
+          name,
+          email,
+          password,
+          timestamps,
+          isOnline: false,
+          token,
+        },
+      });
 
       const onlineUsers = (await User.find({ isOnline: true })).length;
 
