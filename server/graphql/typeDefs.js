@@ -17,6 +17,7 @@ module.exports = gql`
     password: String!
     timestamps: ID!
     isOnline: Boolean!
+    token: String!
   }
 
   input LoginInput {

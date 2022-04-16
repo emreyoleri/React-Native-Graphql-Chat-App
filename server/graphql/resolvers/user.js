@@ -1,9 +1,30 @@
 const { PubSub } = require("graphql-subscriptions");
 const { AuthenticationError, UserInputError } = require("apollo-server");
+const mongoose = require("mongoose");
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 const Message = require("../../models/Message");
 const User = require("../../models/User");
-const mongoose = require("mongoose");
+const {
+  validateRegisterInput,
+  validateLoginInput,
+} = require("../../utils/validators");
+
 const pubsub = new PubSub();
+
+const SECRET_KEY = process.env.SECRET_KEY;
+
+function generateToken(user) {
+  return jwt.sign(
+    {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+    },
+    SECRET_KEY,
+    { expiresIn: "1h" }
+  );
+}
 
 module.exports = {
   Query: {
@@ -14,103 +35,135 @@ module.exports = {
   },
   Mutation: {
     register: async (_, { registerInput: { name, email, password } }) => {
+      const { valid, errors } = validateRegisterInput(name, email, password);
+      if (!valid) {
+        throw new UserInputError("Errors", { errors });
+      }
+
+      let newPassword = await bcrypt.hash(password, 12);
+
       const newUser = new User({
         name,
         email,
-        password,
+        password: newPassword,
         timestamps: new Date().getTime(),
         isOnline: true,
       });
 
       const res = await newUser.save();
 
-      return res;
+      const { _id, timestamps } = res;
+      pubsub.publish("USER_LOGED", {
+        userLoged: {
+          _id,
+          name,
+          email,
+          password: newPassword,
+          timestamps,
+          isOnline: true,
+        },
+      });
+
+      const onlineUsers = (await User.find({ isOnline: true })).length;
+
+      pubsub.publish("GET_ONLINE_USER_COUNT", {
+        getOnlineUserCount: onlineUsers,
+      });
+
+      const token = generateToken(res);
+
+      return { ...res._doc, token };
     },
     login: async (_, { loginInput: { email, password } }) => {
-      // Todo:  the password will hash with jwt
+      const { errors, valid } = validateLoginInput(email, password);
+
+      if (!valid) throw new UserInputError("Errors", { errors });
+
       const user = await User.findOne({ email });
 
-      if (user) {
-        if (user.password === password) {
-          if (user.isOnline) return user;
-          const { _id, name, email, password, timestamps } = user;
-          pubsub.publish("USER_LOGED", {
-            userLoged: {
-              _id,
-              name,
-              email,
-              password,
-              timestamps,
-              isOnline: true,
-            },
-          });
+      if (!user) throw new AuthenticationError("User Not Found");
 
-          const updatedUser = await User.findOneAndUpdate(
-            { _id: _id.toString() },
-            {
-              name,
-              email,
-              password,
-              timestamps,
-              isOnline: true,
-            },
-            { new: true }
-          );
+      const match = await bcrypt.compare(password, user.password);
 
-          const onlineUsers = await (
-            await User.find({ isOnline: true })
-          ).length;
+      if (!match)
+        throw new AuthenticationError("Authentication Failed Wrong Password");
 
-          pubsub.publish("GET_ONLINE_USER_COUNT", {
-            getOnlineUserCount: onlineUsers,
-          });
+      if (user.isOnline) return user;
+      const { _id, name, timestamps } = user;
+      pubsub.publish("USER_LOGED", {
+        userLoged: {
+          _id,
+          name,
+          email,
+          password,
+          timestamps,
+          isOnline: true,
+        },
+      });
 
-          return updatedUser;
-        } else {
-          throw new AuthenticationError("Authentication Failed Wrong Password");
-        }
-      } else {
-        throw new AuthenticationError("User Not Found");
-      }
+      const updatedUser = await User.findOneAndUpdate(
+        { _id: _id.toString() },
+        {
+          name: user.name,
+          email: user.email,
+          password: user.password,
+          timestamps: user.timestamps,
+          isOnline: true,
+        },
+        { new: true }
+      );
+
+      const onlineUsers = (await User.find({ isOnline: true })).length;
+
+      pubsub.publish("GET_ONLINE_USER_COUNT", {
+        getOnlineUserCount: onlineUsers,
+      });
+
+      const token = generateToken(updatedUser);
+
+      return { ...updatedUser._doc, token };
     },
     logout: async (_, { logoutInput: { email, password } }) => {
       const user = await User.findOne({ email });
 
-      if (user && user.password === password) {
-        if (!user.isOnline) return "Logout Successfully";
-        const { _id, name, email, password, timestamps } = user;
-        pubsub.publish("USER_LOGED", {
-          userLoged: {
-            _id,
-            name,
-            email,
-            password,
-            timestamps,
-            isOnline: false,
-          },
-        });
-        const updatedUser = await User.findOneAndUpdate(
-          { _id: _id.toString() },
-          {
-            name,
-            email,
-            password,
-            timestamps,
-            isOnline: false,
-          },
-          { new: true }
-        );
+      const match = await bcrypt.compare(password, user.password);
 
-        const onlineUsers = await (await User.find({ isOnline: true })).length;
+      if (!match)
+        throw new AuthenticationError("Authentication Failed Wrong Password");
 
-        pubsub.publish("GET_ONLINE_USER_COUNT", {
-          getOnlineUserCount: onlineUsers,
-        });
+      if (!user.isOnline) return "Logout Successfully";
 
-        return "Logout Successfully";
-      } else {
-        new AuthenticationError("Logout Failed");
-      }
+      const { _id, name, timestamps } = user;
+      pubsub.publish("USER_LOGED", {
+        userLoged: {
+          _id,
+          name,
+          email,
+          password,
+          timestamps,
+          isOnline: false,
+        },
+      });
+      const updatedUser = await User.findOneAndUpdate(
+        { _id: _id.toString() },
+        {
+          _id,
+          name,
+          email,
+          password: user.password,
+          timestamps,
+          isOnline: false,
+        },
+        { new: true }
+      );
+
+      const onlineUsers = (await User.find({ isOnline: true })).length;
+
+      pubsub.publish("GET_ONLINE_USER_COUNT", {
+        getOnlineUserCount: onlineUsers,
+      });
+
+      return "Logout Successfully";
     },
   },
   Subscription: {
