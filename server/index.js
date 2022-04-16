@@ -53,7 +53,9 @@ const MongoURL = process.env.MONGO_URL;
 
   server.applyMiddleware({ app });
 
-  mongoose.connect(MongoURL, { useNewUrlParser: true });
+  mongoose.connect(MongoURL, { useNewUrlParser: true }).then(() => {
+    console.log("Connected to db");
+  });
 
   const PORT = 8080;
 

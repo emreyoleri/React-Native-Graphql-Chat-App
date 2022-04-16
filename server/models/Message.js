@@ -1,19 +1,11 @@
 const { model, Schema } = require("mongoose");
 
-const messageSchema = new Schema(
-  {
-    uid: {
-      type: String,
-      unique: true,
-    },
-    text: String,
-    createdByName: String,
-    createdByID: Schema.Types.ObjectId,
-    receiverID: Schema.Types.ObjectId,
-  },
-  {
-    timestamps: true,
-  }
-);
+const messageSchema = new Schema({
+  text: Schema.Types.String,
+  createdByName: Schema.Types.String,
+  createdByID: Schema.Types.ObjectId,
+  receiverID: Schema.Types.ObjectId,
+  timestamps: Schema.Types.Number,
+});
 
 module.exports = model("Message", messageSchema);
