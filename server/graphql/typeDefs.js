@@ -24,6 +24,11 @@ module.exports = gql`
     password: String!
   }
 
+  input LogoutInput {
+    email: String!
+    password: String!
+  }
+
   input RegisterInput {
     name: String!
     email: String!
@@ -37,6 +42,7 @@ module.exports = gql`
   type Mutation {
     register(registerInput: RegisterInput): User!
     login(loginInput: LoginInput): User!
+    logout(logoutInput: LogoutInput): String!
   }
 
   type Subscription {

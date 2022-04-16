@@ -1,7 +1,7 @@
 const { PubSub } = require("graphql-subscriptions");
-const { AuthenticationError } = require("apollo-server");
-const Message = require("../models/Message");
-const User = require("../models/User");
+const { AuthenticationError, UserInputError } = require("apollo-server");
+const Message = require("../../models/Message");
+const User = require("../../models/User");
 const mongoose = require("mongoose");
 const pubsub = new PubSub();
 
@@ -19,7 +19,7 @@ module.exports = {
         email,
         password,
         timestamps: new Date().getTime(),
-        isOnline: false, // !! false for now but it will change
+        isOnline: true,
       });
 
       const res = await newUser.save();
@@ -71,6 +71,45 @@ module.exports = {
         }
       } else {
         throw new AuthenticationError("User Not Found");
+      }
+    },
+    logout: async (_, { logoutInput: { email, password } }) => {
+      const user = await User.findOne({ email });
+
+      if (user && user.password === password) {
+        if (!user.isOnline) return "Logout Successfully";
+        const { _id, name, email, password, timestamps } = user;
+        pubsub.publish("USER_LOGED", {
+          userLoged: {
+            _id,
+            name,
+            email,
+            password,
+            timestamps,
+            isOnline: false,
+          },
+        });
+        const updatedUser = await User.findOneAndUpdate(
+          { _id: _id.toString() },
+          {
+            name,
+            email,
+            password,
+            timestamps,
+            isOnline: false,
+          },
+          { new: true }
+        );
+
+        const onlineUsers = await (await User.find({ isOnline: true })).length;
+
+        pubsub.publish("GET_ONLINE_USER_COUNT", {
+          getOnlineUserCount: onlineUsers,
+        });
+
+        return "Logout Successfully";
+      } else {
+        new AuthenticationError("Logout Failed");
       }
     },
   },

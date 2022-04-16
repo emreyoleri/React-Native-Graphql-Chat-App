@@ -10,7 +10,7 @@ const dotenv = require("dotenv");
 dotenv.config();
 
 const typeDefs = require("./graphql/typeDefs.js");
-const resolvers = require("./graphql/resolvers.js");
+const resolvers = require("./graphql/resolvers/index.js");
 
 const MongoURL = process.env.MONGO_URL;
 
