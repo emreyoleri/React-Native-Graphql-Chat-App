@@ -11,6 +11,7 @@ const userSchema = new Schema({
   },
   password: Schema.Types.String,
   timestamps: Schema.Types.Number,
+  isOnline: Schema.Types.Boolean,
 });
 
 module.exports = model("User", userSchema);
