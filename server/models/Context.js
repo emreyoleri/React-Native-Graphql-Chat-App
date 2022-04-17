@@ -12,9 +12,6 @@ const contextSchema = new Schema({
         type: String,
         lowercase: true,
       },
-      password: String,
-      timestamps: Number,
-      isOnline: Boolean,
     },
   ],
   messages: [

@@ -9,13 +9,13 @@ module.exports = {
       const { errors, valid } = validateCreateContextInput(name, users);
       if (!valid) throw new UserInputError("Errors", { errors });
 
+      let emailsOfContextUsers = [];
+
       const promises = users.map(async (user, i) => {
-        const { email } = users[i];
-        const {
-          name: userName,
-          email: userEmail,
-          _id: userID,
-        } = await User.findOne({ email });
+        const { email } = user;
+        const currentUser = await User.findOne({ email });
+        emailsOfContextUsers.push(currentUser.email);
+        const { name: userName, email: userEmail, _id: userID } = currentUser;
 
         return {
           name: userName,
@@ -35,6 +35,16 @@ module.exports = {
       });
 
       const res = await newContext.save();
+
+      emailsOfContextUsers.forEach(async (email) => {
+        await User.findOne({ email }).then((user) => {
+          user.contexts.push({
+            _id: res._id,
+            name: res.name,
+          });
+          user.save();
+        });
+      });
 
       return res;
     },

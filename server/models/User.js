@@ -12,6 +12,14 @@ const userSchema = new Schema({
   password: String,
   timestamps: Number,
   isOnline: Boolean,
+  contexts: {
+    type: [
+      {
+        name: String,
+      },
+    ],
+    default: [],
+  },
 });
 
 module.exports = model("User", userSchema);

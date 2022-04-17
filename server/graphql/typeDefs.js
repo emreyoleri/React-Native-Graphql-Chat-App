@@ -15,6 +15,11 @@ module.exports = gql`
     email: String!
   }
 
+  type UserContext {
+    name: String!
+    _id: String!
+  }
+
   type User {
     _id: String!
     name: String!
@@ -23,6 +28,7 @@ module.exports = gql`
     timestamps: ID!
     isOnline: Boolean!
     token: String!
+    contexts: [UserContext]
   }
 
   type ContextReturnUsers {
