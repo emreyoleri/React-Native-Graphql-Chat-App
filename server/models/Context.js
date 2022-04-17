@@ -1,10 +1,31 @@
 const { model, Schema } = require("mongoose");
-const { user } = require("./User.js");
-const { message } = require("./Message.js");
 
 const contextSchema = new Schema({
-  users: [user],
-  messages: [message],
+  name: String,
+  users: [
+    {
+      name: {
+        type: String,
+        lowercase: true,
+      },
+      email: {
+        type: String,
+        lowercase: true,
+      },
+      password: String,
+      timestamps: Number,
+      isOnline: Boolean,
+    },
+  ],
+  messages: [
+    {
+      text: String,
+      createdByName: String,
+      createdByID: Schema.Types.ObjectId,
+      receiverID: Schema.Types.ObjectId,
+      timestamps: Number,
+    },
+  ],
 });
 
 module.exports = model("Context", contextSchema);

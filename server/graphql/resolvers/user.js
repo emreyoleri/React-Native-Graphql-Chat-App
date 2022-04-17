@@ -26,11 +26,9 @@ module.exports = {
   Mutation: {
     register: async (_, { registerInput: { name, email, password } }) => {
       const { valid, errors } = validateRegisterInput(name, email, password);
-      if (!valid) {
-        throw new UserInputError("Errors", { errors });
-      }
+      if (!valid) throw new UserInputError("Errors", { errors });
 
-      let newPassword = await bcrypt.hash(password, 12);
+      const newPassword = await bcrypt.hash(password, 12);
 
       const newUser = new User({
         name,

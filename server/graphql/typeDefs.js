@@ -10,6 +10,11 @@ module.exports = gql`
     timestamps: ID!
   }
 
+  input userInput {
+    _id: String!
+    email: String!
+  }
+
   type User {
     _id: String!
     name: String!
@@ -20,8 +25,16 @@ module.exports = gql`
     token: String!
   }
 
+  type ContextReturnUsers {
+    name: String!
+    email: String!
+    _id: String!
+  }
+
   type Context {
-    users: [User!]!
+    _id: String!
+    name: String!
+    users: [ContextReturnUsers!]
     messages: [Message]
   }
 
@@ -41,6 +54,11 @@ module.exports = gql`
     password: String!
   }
 
+  input ContextInput {
+    name: String!
+    users: [userInput]
+  }
+
   type Query {
     getUsers: [User!]!
   }
@@ -49,6 +67,7 @@ module.exports = gql`
     register(registerInput: RegisterInput): User!
     login(loginInput: LoginInput): User!
     logout(logoutInput: LogoutInput): String!
+    createContext(contextInput: ContextInput): Context!
   }
 
   type Subscription {
