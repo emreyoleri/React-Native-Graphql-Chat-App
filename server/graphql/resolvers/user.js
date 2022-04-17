@@ -1,8 +1,6 @@
 const { PubSub } = require("graphql-subscriptions");
 const { AuthenticationError, UserInputError } = require("apollo-server");
-const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
-const Message = require("../../models/Message");
 const User = require("../../models/User");
 const {
   validateRegisterInput,

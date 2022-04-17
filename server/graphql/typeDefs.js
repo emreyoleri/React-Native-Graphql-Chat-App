@@ -20,6 +20,11 @@ module.exports = gql`
     token: String!
   }
 
+  type Context {
+    users: [User!]!
+    messages: [Message]
+  }
+
   input LoginInput {
     email: String!
     password: String!

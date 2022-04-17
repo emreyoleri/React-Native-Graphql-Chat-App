@@ -7,5 +7,5 @@ const messageSchema = new Schema({
   receiverID: Schema.Types.ObjectId,
   timestamps: Schema.Types.Number,
 });
-
+module.exports.message = messageSchema;
 module.exports = model("Message", messageSchema);
