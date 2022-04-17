@@ -2,6 +2,7 @@ const { validateCreateContextInput } = require("../../utils/validators");
 const { AuthenticationError, UserInputError } = require("apollo-server");
 const Context = require("../../models/Context.js");
 const User = require("../../models/User.js");
+const checkAuth = require("../../utils/check-auth");
 
 module.exports = {
   Mutation: {

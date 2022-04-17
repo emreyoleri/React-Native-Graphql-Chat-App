@@ -1,19 +1,27 @@
 const { PubSub } = require("graphql-subscriptions");
 const { AuthenticationError, UserInputError } = require("apollo-server");
 const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+
 const User = require("../../models/User");
 const {
   validateRegisterInput,
   validateLoginInput,
 } = require("../../utils/validators");
 
+const SECRET_KEY = process.env.SECRET_KEY;
 const pubsub = new PubSub();
 
-async function generateToken(user) {
-  const idToken = await bcrypt.hash(user.id, 12);
-  const emailToken = await bcrypt.hash(user.email, 12);
-  const passwordToken = await bcrypt.hash(user.password, 12);
-  return idToken + emailToken + passwordToken;
+function generateToken(user) {
+  return jwt.sign(
+    {
+      id: user._id,
+      email: user.email,
+      name: user.name,
+    },
+    SECRET_KEY,
+    { expiresIn: "1h" }
+  );
 }
 
 module.exports = {
@@ -76,16 +84,13 @@ module.exports = {
       if (!match)
         throw new AuthenticationError("Authentication Failed Wrong Password");
 
-      if (user.isOnline) return user;
+      if (user.isOnline) return { ...user._doc, token: generateToken(user) };
       const { _id, name, timestamps } = user;
 
       const updatedUser = await User.findOneAndUpdate(
         { _id: _id.toString() },
         {
-          name,
-          email,
           password: user.password,
-          timestamps,
           isOnline: true,
         },
         { new: true }
@@ -137,8 +142,6 @@ module.exports = {
         { new: true }
       );
 
-      const token = generateToken(updatedUser);
-
       pubsub.publish("USER_LOGED", {
         userLoged: {
           _id,
@@ -147,7 +150,7 @@ module.exports = {
           password,
           timestamps,
           isOnline: false,
-          token,
+          token: null,
         },
       });
 

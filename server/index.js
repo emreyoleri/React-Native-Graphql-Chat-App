@@ -36,6 +36,7 @@ const MongoURL = process.env.MONGO_URL;
 
   const server = new ApolloServer({
     schema,
+    context: ({ req }) => ({ req }),
     plugins: [
       {
         async serverWillStart() {
