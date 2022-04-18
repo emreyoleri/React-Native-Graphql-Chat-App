@@ -12,6 +12,10 @@ const contextSchema = new Schema({
         type: String,
         lowercase: true,
       },
+      isAdmin: {
+        type: Boolean,
+        default: false,
+      },
     },
   ],
   messages: [

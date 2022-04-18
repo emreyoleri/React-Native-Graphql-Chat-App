@@ -12,12 +12,6 @@ module.exports = async (context) => {
         const user = jwt.verify(token, SECRET_KEY);
         if (user) {
           const fullUserInfo = await User.findOne({ email: user.email });
-          if (!fullUserInfo.token) {
-            new AuthenticationError("User is already logged out!");
-            return {
-              error: "User is already logged out!",
-            };
-          }
 
           return {
             user: { ...fullUserInfo._doc },

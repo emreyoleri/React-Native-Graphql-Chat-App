@@ -8,7 +8,7 @@ const {
   validateRegisterInput,
   validateLoginInput,
 } = require("../../utils/validators");
-const checkAuth = require("../../utils/check-auth");
+const checkAuth = require("../../utils/checkAuth");
 
 const SECRET_KEY = process.env.SECRET_KEY;
 const pubsub = new PubSub();
@@ -31,6 +31,37 @@ function generateToken({ email, password }) {
     { expiresIn: 60 * 60, algorithm: "HS256" }
   );
   return token;
+}
+
+async function login(user) {
+  const { _id, email, password } = user;
+  const token = generateToken({
+    email,
+    password,
+  });
+
+  const updatedUser = await User.findOneAndUpdate(
+    { _id: _id.toString() },
+    {
+      isOnline: true,
+      token,
+    },
+    { new: true }
+  );
+
+  return { ...updatedUser._doc };
+}
+
+async function userLoged(user, isOnline = true) {
+  const { _id, name, email } = user;
+  pubsub.publish("USER_LOGED", {
+    userLoged: {
+      _id,
+      name,
+      email,
+      isOnline,
+    },
+  });
 }
 
 module.exports = {
@@ -61,21 +92,13 @@ module.exports = {
         token,
       });
 
-      const res = await newUser.save();
+      const user = await newUser.save();
 
-      const { _id } = res;
-      pubsub.publish("USER_LOGED", {
-        userLoged: {
-          _id,
-          name,
-          email,
-          isOnline: true,
-        },
-      });
+      userLoged(user);
 
       getOnlineUserCount();
 
-      return { ...res._doc };
+      return { ...user._doc };
     },
     login: async (_, { loginInput: { email, password } }) => {
       const { errors, valid } = validateLoginInput(email, password);
@@ -91,59 +114,45 @@ module.exports = {
       if (!match)
         throw new AuthenticationError("Authentication Failed Wrong Password");
 
-      const { _id, name, timestamps } = user;
-      const token = generateToken({
-        email,
-        password: user.password,
-      });
-
-      const updatedUser = await User.findOneAndUpdate(
-        { _id: _id.toString() },
-        {
-          password: user.password,
-          isOnline: true,
-          token,
-        },
-        { new: true }
-      );
-
-      pubsub.publish("USER_LOGED", {
-        userLoged: {
-          _id,
-          name,
-          email,
-          isOnline: true,
-        },
-      });
+      const updatedUser = await login(user);
 
       getOnlineUserCount();
 
-      return { ...updatedUser._doc };
+      userLoged(updatedUser);
+
+      return updatedUser;
     },
+    otoLogin: async (_, {}, context) => {
+      const data = await checkAuth(context);
+      if (data.error) throw new AuthenticationError(data.error);
+
+      if (data.user) {
+        const updatedUser = await login(data.user);
+        return updatedUser;
+      }
+    },
+
     logout: async (_, {}, context) => {
       const data = await checkAuth(context);
-      if (data.error) {
-        throw new AuthenticationError(data.error);
-      }
+      if (data.error) throw new AuthenticationError(data.error);
+
+      if (!data.user.token)
+        throw new AuthenticationError("User is already logged out!");
 
       const { email } = data?.user;
 
-      const { _id, name } = await User.findOneAndUpdate(
+      const updatedUser = await User.findOneAndUpdate(
         { email },
         {
           isOnline: false,
           token: null,
+        },
+        {
+          new: true,
         }
       );
 
-      pubsub.publish("USER_LOGED", {
-        userLoged: {
-          _id,
-          name,
-          email,
-          isOnline: false,
-        },
-      });
+      userLoged(updatedUser, false);
 
       getOnlineUserCount();
 

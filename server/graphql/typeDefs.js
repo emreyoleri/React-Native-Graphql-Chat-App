@@ -42,6 +42,7 @@ module.exports = gql`
     name: String!
     email: String!
     _id: String!
+    isAdmin: Boolean!
   }
 
   type Context {
@@ -79,6 +80,7 @@ module.exports = gql`
   type Mutation {
     register(registerInput: RegisterInput): User!
     login(loginInput: LoginInput): User!
+    otoLogin: User!
     logout(logoutInput: LogoutInput): String!
     createContext(contextInput: ContextInput): Context!
   }
