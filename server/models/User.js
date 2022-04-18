@@ -20,6 +20,7 @@ const userSchema = new Schema({
     ],
     default: [],
   },
+  token: String,
 });
 
 module.exports = model("User", userSchema);

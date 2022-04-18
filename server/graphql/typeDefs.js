@@ -31,6 +31,13 @@ module.exports = gql`
     contexts: [UserContext]
   }
 
+  type UserBasicInfo {
+    _id: String!
+    name: String!
+    email: String!
+    isOnline: Boolean!
+  }
+
   type ContextReturnUsers {
     name: String!
     email: String!
@@ -77,7 +84,7 @@ module.exports = gql`
   }
 
   type Subscription {
-    userLoged: User!
+    userLoged: UserBasicInfo!
     getOnlineUserCount: Int!
   }
 `;
