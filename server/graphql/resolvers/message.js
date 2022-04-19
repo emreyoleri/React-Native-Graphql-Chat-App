@@ -1,9 +1,5 @@
 const { validateCreateContextInput } = require("../../utils/validators");
-const {
-  AuthenticationError,
-  UserInputError,
-  ApolloError,
-} = require("apollo-server");
+const { AuthenticationError, UserInputError } = require("apollo-server");
 const Context = require("../../models/Context.js");
 const User = require("../../models/User.js");
 const checkAuth = require("../../utils/checkAuth");
@@ -72,7 +68,7 @@ module.exports = {
 
       const res = await newContext.save();
 
-      emailsOfContextUsers.forEach(async (email) => {
+      [...emailsOfContextUsers, admin.email].forEach(async (email) => {
         await User.findOne({ email }).then((user) => {
           user.contexts.push({
             _id: res._id,
@@ -105,15 +101,70 @@ module.exports = {
         const currentUser = await User.findOne({ _id: user._id });
 
         currentUser.contexts = currentUser.contexts.filter(
-          (cxt) => cxt._id === _id
+          (cxt) => cxt._id.toString() !== _id
         );
-
-        currentUser.save();
+        await currentUser.save();
       });
 
       await contextToBeDeleted.delete();
 
       return "Context deleted successfully";
+    },
+    leaveContext: async (_, { leaveContextInput: { _id } }, context) => {
+      const data = await checkAuth(context);
+      if (data.error) throw new AuthenticationError(data.error);
+
+      const { email } = data.user;
+
+      const user = await User.findOne({ email });
+
+      const contextToLeave = await Context.findOne({ _id });
+
+      const isUserInContext = contextToLeave.users.find(
+        (u) => u.email === email
+      );
+      if (!isUserInContext)
+        throw new UserInputError(
+          `This user is not already in this group - ${user.email}.`
+        );
+
+      if (!contextToLeave)
+        throw new UserInputError(`No context found matching this ID - ${_id}.`);
+
+      user.contexts = user.contexts.filter((cxt) => cxt._id.toString() !== _id);
+      await user.save();
+
+      contextToLeave.users = contextToLeave.users.filter(
+        (currUser) => currUser._id.toString() !== user._id.toString()
+      );
+
+      let res = await contextToLeave.save();
+
+      const isAdminLeft = res.users.find((u) => u.isAdmin === true);
+
+      if (res.users.length === 0) {
+        await Context.findOneAndDelete({ _id: res._id });
+        return `${user.name.toString()} left the group successfully and context deleted.`;
+      }
+
+      if (!isAdminLeft) {
+        const adminIndex = Math.floor(Math.random() * res.users.length);
+        const adminUser = res.users[adminIndex];
+        const { email, name } = adminUser;
+
+        await Context.findOneAndUpdate(
+          { email },
+          {
+            users: [
+              ...res.users.filter((u) => u.email !== email),
+              { ...adminUser._doc, isAdmin: true },
+            ],
+          }
+        );
+        return `Admin left the group, new admin: ${name.toUpperCase()}`;
+      }
+
+      return `${user.name.toUpperCase()} left the group successfully`;
     },
   },
 };
