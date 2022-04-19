@@ -1,5 +1,9 @@
 const { validateCreateContextInput } = require("../../utils/validators");
-const { AuthenticationError, UserInputError } = require("apollo-server");
+const {
+  AuthenticationError,
+  UserInputError,
+  ApolloError,
+} = require("apollo-server");
 const Context = require("../../models/Context.js");
 const User = require("../../models/User.js");
 const checkAuth = require("../../utils/checkAuth");
@@ -79,6 +83,37 @@ module.exports = {
       });
 
       return res;
+    },
+    deleteContext: async (_, { deleteContextInput: { _id } }, context) => {
+      const data = await checkAuth(context);
+      if (data.error) throw new AuthenticationError(data.error);
+
+      const contextToBeDeleted = await Context.findOne({ _id });
+
+      if (!contextToBeDeleted)
+        throw new UserInputError(`No context found matching this ID - ${_id}.`);
+      const usersInContext = contextToBeDeleted.users;
+
+      const { isAdmin } = contextToBeDeleted.users.find(
+        (user) => user._id.toString() === data.user._id.toString()
+      );
+
+      if (!isAdmin)
+        throw new AuthenticationError("Only group admin can delete groups.");
+
+      usersInContext.forEach(async (user) => {
+        const currentUser = await User.findOne({ _id: user._id });
+
+        currentUser.contexts = currentUser.contexts.filter(
+          (cxt) => cxt._id === _id
+        );
+
+        currentUser.save();
+      });
+
+      await contextToBeDeleted.delete();
+
+      return "Context deleted successfully";
     },
   },
 };

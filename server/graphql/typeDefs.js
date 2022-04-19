@@ -73,6 +73,10 @@ module.exports = gql`
     users: [userInput]
   }
 
+  input DeleteContextInput {
+    _id: String!
+  }
+
   type Query {
     getUsers: [User!]!
   }
@@ -83,6 +87,7 @@ module.exports = gql`
     otoLogin: User!
     logout(logoutInput: LogoutInput): String!
     createContext(contextInput: ContextInput): Context!
+    deleteContext(deleteContextInput: DeleteContextInput): String!
   }
 
   type Subscription {
