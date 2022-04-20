@@ -7,6 +7,11 @@ const checkAuth = require("../../utils/checkAuth");
 module.exports = {
   Mutation: {
     createContext: async (_, { contextInput: { name, users } }, context) => {
+      if (!name || !users || !users.length)
+        throw new UserInputError(
+          `"name" and "users" are required. && The number of users must be at least 1.`
+        );
+
       const data = await checkAuth(context);
       if (data.error) throw new AuthenticationError(data.error);
 
@@ -81,6 +86,8 @@ module.exports = {
       return res;
     },
     deleteContext: async (_, { deleteContextInput: { _id } }, context) => {
+      if (!_id) throw new UserInputError(`"_id" is required.`);
+
       const data = await checkAuth(context);
       if (data.error) throw new AuthenticationError(data.error);
 
@@ -111,6 +118,8 @@ module.exports = {
       return "Context deleted successfully";
     },
     leaveContext: async (_, { leaveContextInput: { _id } }, context) => {
+      if (!_id) throw new UserInputError(`"_id" is required.`);
+
       const data = await checkAuth(context);
       if (data.error) throw new AuthenticationError(data.error);
 
@@ -172,7 +181,7 @@ module.exports = {
       context
     ) => {
       if (!contextID || !userID)
-        throw new UserInputError(`contextID and userID are required`);
+        throw new UserInputError(`"contextID" and "userID" are required.`);
       const data = await checkAuth(context);
       if (data.error) throw new AuthenticationError(data.error);
 
@@ -214,8 +223,10 @@ module.exports = {
       { makeAnAdminInput: { userID, contextID } },
       context
     ) => {
+      if (!contextID || !userID)
+        throw new UserInputError(`"contextID" and "userID" are required.`);
+
       const data = await checkAuth(context);
-      console.log("data", data);
       if (data.error) throw new AuthenticationError(data.error);
 
       const user = await User.findOne({ _id: userID });
