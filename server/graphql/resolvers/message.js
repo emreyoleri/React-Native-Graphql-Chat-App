@@ -176,6 +176,69 @@ module.exports = {
 
       return `${user.name.toUpperCase()} left the group successfully`;
     },
+    addUserToContext: async (
+      _,
+      { addUserToContextInput: { contextID, userID } },
+      context
+    ) => {
+      if (!contextID || !userID)
+        throw new UserInputError(`"contextID" and "userID" are required.`);
+      const data = await checkAuth(context);
+      if (data.error) throw new AuthenticationError(data.error);
+
+      const user = await User.findOne({ _id: userID });
+
+      if (!user)
+        throw new UserInputError(`No user found matching this ID - ${userID}.`);
+
+      const $context = await Context.findOne({ _id: contextID });
+
+      if (!$context)
+        throw new UserInputError(
+          `No context found matching this ID - ${contextID}.`
+        );
+
+      const isUserAdmin = $context.users.find(
+        (u) => u._id.toString() === data.user._id.toString()
+      );
+
+      if (!isUserAdmin.isAdmin)
+        throw new AuthenticationError("Only group admin can add the user.");
+
+      const isUserInThisContext = user.contexts.find(
+        (c) => c._id.toString() === $context._id.toString()
+      );
+
+      if (isUserInThisContext)
+        throw new UserInputError(
+          `${user.name.toUpperCase()} is already registered in this group.`
+        );
+
+      user.contexts = [
+        ...user.contexts,
+        {
+          name: $context.name,
+          _id: $context._id,
+        },
+      ];
+
+      await user.save();
+
+      $context.users = [
+        ...$context.users,
+        {
+          name: user.name,
+          email: user.email,
+          _id: user._id,
+          isAdmin: false,
+        },
+      ];
+
+      await $context.save();
+
+      return `${user.name.toUpperCase()} added to group by ${data.user.name.toUpperCase()}`;
+    },
+
     kickUserOutContext: async (
       _,
       { kickUserOutContextInput: { contextID, userID } },
@@ -196,6 +259,15 @@ module.exports = {
       if (!$context)
         throw new UserInputError(
           `No context found matching this ID - ${contextID}.`
+        );
+
+      const isUserInThisContext = user.contexts.find(
+        (c) => c._id.toString() === $context._id.toString()
+      );
+
+      if (!isUserInThisContext)
+        throw new UserInputError(
+          `${user.name.toUpperCase()} is not already registered in this group.`
         );
 
       const isUserAdmin = $context.users.find(
@@ -222,7 +294,7 @@ module.exports = {
 
       await $context.save();
 
-      return `${user.name} was kicked out of the group.`;
+      return `${user.name.toUpperCase()} was kicked out of the group by ${data.user.name.toUpperCase()}`;
     },
     makeAnAdmin: async (
       _,

@@ -83,6 +83,11 @@ module.exports = gql`
     _id: String!
   }
 
+  input AddUserToContextInput {
+    contextID: String!
+    userID: String!
+  }
+
   input KickUserOutContextInput {
     contextID: String!
     userID: String!
@@ -110,6 +115,7 @@ module.exports = gql`
     createContext(contextInput: ContextInput): Context!
     deleteContext(deleteContextInput: DeleteContextInput): String!
     leaveContext(leaveContextInput: LeaveContextInput): String!
+    addUserToContext(addUserToContextInput: AddUserToContextInput): String!
     kickUserOutContext(
       kickUserOutContextInput: KickUserOutContextInput
     ): String!
