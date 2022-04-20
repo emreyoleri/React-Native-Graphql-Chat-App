@@ -166,5 +166,50 @@ module.exports = {
 
       return `${user.name.toUpperCase()} left the group successfully`;
     },
+    kickUserOutContext: async (
+      _,
+      { kickUserOutContextInput: { contextID, userID } },
+      context
+    ) => {
+      if (!contextID || !userID)
+        throw new UserInputError(`contextID and userID are required`);
+      const data = await checkAuth(context);
+      if (data.error) throw new AuthenticationError(data.error);
+
+      const user = await User.findOne({ _id: userID });
+
+      if (!user)
+        throw new UserInputError(
+          `No user found matching this ID - ${contextID}.`
+        );
+
+      const $context = await Context.findOne({ _id: contextID });
+
+      if (!$context)
+        throw new UserInputError(
+          `No context found matching this ID - ${contextID}.`
+        );
+
+      const isUserAdmin = $context.users.find(
+        (u) => u._id.toString() === data.user._id.toString()
+      );
+
+      if (!isUserAdmin.isAdmin)
+        throw new AuthenticationError("Only group admin can kick the user.");
+
+      user.contexts = user.contexts.filter(
+        (ctx) => ctx._id.toString() !== contextID
+      );
+
+      await user.save();
+
+      $context.users = $context.users.filter(
+        (u) => u._id.toString() !== userID
+      );
+
+      await $context.save();
+
+      return `${user.name} was kicked out of the group.`;
+    },
   },
 };
