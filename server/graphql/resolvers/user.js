@@ -107,8 +107,10 @@ module.exports = {
 
       const user = await User.findOne({ email });
 
-      if (!user) throw new AuthenticationError("User Not Found");
-
+      if (!user)
+        throw new UserInputError(
+          `No user found matching this email - ${email}.`
+        );
       const match = await bcrypt.compare(password, user.password);
 
       if (!match)

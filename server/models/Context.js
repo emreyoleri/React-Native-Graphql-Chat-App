@@ -27,6 +27,8 @@ const contextSchema = new Schema({
       timestamps: Number,
     },
   ],
+  createdAt: Number,
+  createdBy: Schema.Types.ObjectId,
 });
 
 module.exports = model("Context", contextSchema);

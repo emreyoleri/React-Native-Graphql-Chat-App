@@ -1,5 +1,6 @@
 const { validateCreateContextInput } = require("../../utils/validators");
 const { AuthenticationError, UserInputError } = require("apollo-server");
+const mongoose = require("mongoose");
 const Context = require("../../models/Context.js");
 const User = require("../../models/User.js");
 const checkAuth = require("../../utils/checkAuth");
@@ -7,10 +8,8 @@ const checkAuth = require("../../utils/checkAuth");
 module.exports = {
   Mutation: {
     createContext: async (_, { contextInput: { name, users } }, context) => {
-      if (!name || !users || !users.length)
-        throw new UserInputError(
-          `"name" and "users" are required. && The number of users must be at least 1.`
-        );
+      if (!name || !users)
+        throw new UserInputError(`"name" and "users" are required.`);
 
       const data = await checkAuth(context);
       if (data.error) throw new AuthenticationError(data.error);
@@ -51,15 +50,15 @@ module.exports = {
       let usersInfo;
 
       await Promise.all(promises).then((results) => {
-        usersInfo = [
-          ...results,
-          {
-            name: admin.name,
-            email: admin.email,
-            _id: admin._id,
-            isAdmin: true,
-          },
-        ];
+        const _users = [...results];
+        _users.unshift({
+          name: admin.name,
+          email: admin.email,
+          _id: admin._id,
+          isAdmin: true,
+        });
+
+        usersInfo = [..._users];
       });
 
       if (usersInfo.length < 2)
@@ -69,6 +68,8 @@ module.exports = {
         name,
         users: usersInfo,
         messages: [],
+        createdBy: mongoose.Types.ObjectId(admin._id),
+        createdAt: new Date().getTime(),
       });
 
       const res = await newContext.save();
@@ -147,7 +148,7 @@ module.exports = {
         (currUser) => currUser._id.toString() !== user._id.toString()
       );
 
-      let res = await contextToLeave.save();
+      const res = await contextToLeave.save();
 
       const isAdminLeft = res.users.find((u) => u.isAdmin === true);
 
@@ -204,6 +205,11 @@ module.exports = {
       if (!isUserAdmin.isAdmin)
         throw new AuthenticationError("Only group admin can kick the user.");
 
+      if ($context.createdBy.toString() === userID)
+        throw new UserInputError(
+          "The user who created the group cannot be removed from the context"
+        );
+
       user.contexts = user.contexts.filter(
         (ctx) => ctx._id.toString() !== contextID
       );
@@ -247,7 +253,7 @@ module.exports = {
 
           if (!isUserAdmin.isAdmin)
             throw new AuthenticationError(
-              "Only group admins can make others admin."
+              "Only group admins can remove other admins from admin."
             );
 
           const userIndex = $context.users.findIndex(
@@ -259,6 +265,14 @@ module.exports = {
           if (isAdmin)
             throw new UserInputError(`User with ID (${_id}) already admin.`);
 
+          if (
+            $context.users[userIndex]._id.toString() ===
+            $context.createdBy.toString()
+          )
+            throw new UserInputError(
+              "The user who created the group cannot be removed from the admin"
+            );
+
           $context.users[userIndex] = {
             name,
             email,
@@ -269,6 +283,63 @@ module.exports = {
           await $context.save();
 
           return `${user.name.toUpperCase()} declared admin by ${data.user.name.toUpperCase()}`;
+        }
+      );
+      return message;
+    },
+
+    quitAdmin: async (
+      _,
+      { quitAdminInput: { contextID, userID } },
+      context
+    ) => {
+      if (!contextID || !userID)
+        throw new UserInputError(`"contextID" and "userID" are required.`);
+      const data = await checkAuth(context);
+      if (data.error) throw new AuthenticationError(data.error);
+
+      const user = await User.findOne({ _id: userID });
+
+      if (!user)
+        throw new UserInputError(`No user found matching this ID - ${userID}.`);
+
+      const message = await Context.findOne({ _id: contextID }).then(
+        async ($context) => {
+          if (!$context)
+            throw new UserInputError(
+              `No context found matching this ID - ${contextID}.`
+            );
+
+          const isUserAdmin = $context.users.find(
+            (u) => u._id.toString() === data.user._id.toString()
+          );
+
+          if (!isUserAdmin.isAdmin)
+            throw new AuthenticationError(
+              "Only group admins can make others user."
+            );
+
+          const userIndex = $context.users.findIndex(
+            (u) => u._id.toString() === userID
+          );
+
+          const { name, email, _id } = $context.users[userIndex];
+
+          if ($context.createdBy.toString() === userID)
+            throw new UserInputError(
+              `The user who created the group cannot be removed from the admin.`
+            );
+
+          $context.users[userIndex] = {
+            name,
+            email,
+            _id,
+            isAdmin: false,
+          };
+
+          await $context.save();
+
+          return `${user.name.toUpperCase()} removed from admin by ${data.user.name.toUpperCase()}`;
         }
       );
       return message;

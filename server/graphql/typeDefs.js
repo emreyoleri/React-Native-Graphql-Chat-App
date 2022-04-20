@@ -50,6 +50,8 @@ module.exports = gql`
     name: String!
     users: [ContextReturnUsers!]
     messages: [Message]
+    createdAt: ID!
+    createdBy: String!
   }
 
   input LoginInput {
@@ -91,6 +93,11 @@ module.exports = gql`
     userID: String!
   }
 
+  input QuitAdminInput {
+    contextID: String!
+    userID: String!
+  }
+
   type Query {
     getUsers: [User!]!
   }
@@ -107,6 +114,7 @@ module.exports = gql`
       kickUserOutContextInput: KickUserOutContextInput
     ): String!
     makeAnAdmin(makeAnAdminInput: MakeAnAdminInput): String!
+    quitAdmin(quitAdminInput: QuitAdminInput): String!
   }
 
   type Subscription {
