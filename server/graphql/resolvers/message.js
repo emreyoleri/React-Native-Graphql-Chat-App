@@ -179,9 +179,7 @@ module.exports = {
       const user = await User.findOne({ _id: userID });
 
       if (!user)
-        throw new UserInputError(
-          `No user found matching this ID - ${contextID}.`
-        );
+        throw new UserInputError(`No user found matching this ID - ${userID}.`);
 
       const $context = await Context.findOne({ _id: contextID });
 
@@ -210,6 +208,59 @@ module.exports = {
       await $context.save();
 
       return `${user.name} was kicked out of the group.`;
+    },
+    makeAnAdmin: async (
+      _,
+      { makeAnAdminInput: { userID, contextID } },
+      context
+    ) => {
+      const data = await checkAuth(context);
+      console.log("data", data);
+      if (data.error) throw new AuthenticationError(data.error);
+
+      const user = await User.findOne({ _id: userID });
+
+      if (!user)
+        throw new UserInputError(`No user found matching this ID - ${userID}.`);
+
+      const message = await Context.findOne({ _id: contextID }).then(
+        async ($context) => {
+          if (!$context)
+            throw new UserInputError(
+              `No context found matching this ID - ${contextID}.`
+            );
+
+          const isUserAdmin = $context.users.find(
+            (u) => u._id.toString() === data.user._id.toString()
+          );
+
+          if (!isUserAdmin.isAdmin)
+            throw new AuthenticationError(
+              "Only group admins can make others admin."
+            );
+
+          const userIndex = $context.users.findIndex(
+            (u) => u._id.toString() === userID
+          );
+
+          const { name, email, _id, isAdmin } = $context.users[userIndex];
+
+          if (isAdmin)
+            throw new UserInputError(`User with ID (${_id}) already admin.`);
+
+          $context.users[userIndex] = {
+            name,
+            email,
+            _id,
+            isAdmin: true,
+          };
+
+          await $context.save();
+
+          return `${user.name.toUpperCase()} declared admin by ${data.user.name.toUpperCase()}`;
+        }
+      );
+      return message;
     },
   },
 };

@@ -86,6 +86,11 @@ module.exports = gql`
     userID: String!
   }
 
+  input MakeAnAdminInput {
+    contextID: String!
+    userID: String!
+  }
+
   type Query {
     getUsers: [User!]!
   }
@@ -101,6 +106,7 @@ module.exports = gql`
     kickUserOutContext(
       kickUserOutContextInput: KickUserOutContextInput
     ): String!
+    makeAnAdmin(makeAnAdminInput: MakeAnAdminInput): String!
   }
 
   type Subscription {
