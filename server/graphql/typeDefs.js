@@ -121,8 +121,14 @@ module.exports = gql`
     userID: String!
   }
 
+  type MyContexts {
+    contexts: [Context]
+    twoPersonContexts: [TwoPersonContext]
+  }
+
   type Query {
     getUsers: [User!]!
+    getMyContexts: MyContexts!
   }
 
   type Mutation {

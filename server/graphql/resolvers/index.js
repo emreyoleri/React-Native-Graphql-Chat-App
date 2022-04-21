@@ -4,6 +4,7 @@ const contextResolver = require("./context.js");
 module.exports = {
   Query: {
     ...userResolvers.Query,
+    ...contextResolver.Query,
   },
   Mutation: {
     ...userResolvers.Mutation,

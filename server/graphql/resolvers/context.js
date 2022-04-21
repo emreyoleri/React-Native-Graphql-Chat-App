@@ -7,6 +7,46 @@ const User = require("../../models/User.js");
 const checkAuth = require("../../utils/checkAuth");
 
 module.exports = {
+  Query: {
+    getMyContexts: async (_, {}, context) => {
+      const data = await checkAuth(context);
+      if (data.error) throw new AuthenticationError(data.error);
+
+      const { user } = data;
+
+      const myContextIDs = user.contexts.map((ctx) => ctx._id);
+
+      const myContextsPromises = myContextIDs.map(async ({ _id }) => {
+        const _context = await Context.findOne({ _id });
+
+        return _context;
+      });
+
+      let contexts;
+
+      await Promise.all(myContextsPromises).then((results) => {
+        contexts = [...results];
+      });
+
+      const myTwoPersonContextIDs = user.twoPersonContext.map((ctx) => ctx._id);
+
+      const twoPersonContextsPromises = myTwoPersonContextIDs.map(
+        async ({ _id }) => {
+          const _context = await twoPersonContext.findOne({ _id });
+
+          return _context;
+        }
+      );
+
+      let twoPersonContexts;
+
+      await Promise.all(twoPersonContextsPromises).then((results) => {
+        twoPersonContexts = [...results];
+      });
+
+      return { contexts, twoPersonContexts };
+    },
+  },
   Mutation: {
     createContext: async (_, { contextInput: { name, users } }, context) => {
       if (!name || !users)
