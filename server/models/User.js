@@ -20,6 +20,14 @@ const userSchema = new Schema({
     ],
     default: [],
   },
+  twoPersonContext: {
+    type: [
+      {
+        userID: Schema.Types.ObjectId,
+      },
+    ],
+    default: [],
+  },
   token: String,
 });
 

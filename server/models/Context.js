@@ -31,4 +31,29 @@ const contextSchema = new Schema({
   createdBy: Schema.Types.ObjectId,
 });
 
+const twoPersonContext = new Schema({
+  users: [
+    {
+      name: {
+        type: String,
+        lowercase: true,
+      },
+      email: {
+        type: String,
+        lowercase: true,
+      },
+    },
+  ],
+  messages: [
+    {
+      text: String,
+      createdByName: String,
+      createdByID: Schema.Types.ObjectId,
+      receiverID: Schema.Types.ObjectId,
+      timestamps: Number,
+    },
+  ],
+});
+
 module.exports = model("Context", contextSchema);
+module.exports.twoPersonContext = model("TwoPersonContext", twoPersonContext);

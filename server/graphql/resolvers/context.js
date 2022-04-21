@@ -2,6 +2,7 @@ const { validateCreateContextInput } = require("../../utils/validators");
 const { AuthenticationError, UserInputError } = require("apollo-server");
 const mongoose = require("mongoose");
 const Context = require("../../models/Context.js");
+const { twoPersonContext } = require("../../models/Context.js");
 const User = require("../../models/User.js");
 const checkAuth = require("../../utils/checkAuth");
 
@@ -81,6 +82,51 @@ module.exports = {
             name: res.name,
           });
           user.save();
+        });
+      });
+
+      return res;
+    },
+
+    createTwoPersonContext: async (_, { userId }, context) => {
+      if (!userId) throw new UserInputError(`"userId" is required.`);
+
+      const data = await checkAuth(context);
+      if (data.error) throw new AuthenticationError(data.error);
+
+      const admin = data.user;
+
+      const user = await User.findOne({ _id: userId });
+
+      if (!user)
+        throw new UserInputError(`No user found matching this ID - ${userId}.`);
+
+      const findTwoPersonContext = admin.twoPersonContext.find(
+        (ctx) => ctx.userID.toString() === user._id.toString()
+      );
+
+      if (findTwoPersonContext)
+        throw new UserInputError(
+          `A context has already been created between these two users.`
+        );
+
+      const newContext = new twoPersonContext({
+        users: [admin, user],
+        messages: [],
+      });
+
+      const res = await newContext.save();
+
+      [admin, user].forEach(async ({ _id }) => {
+        await User.findOne({ _id }).then((_user) => {
+          _user.twoPersonContext.push({
+            _id: res._id,
+            userID:
+              _user._id.toString() === user._id.toString()
+                ? admin._id
+                : user._id,
+          });
+          _user.save();
         });
       });
 
@@ -238,7 +284,6 @@ module.exports = {
 
       return `${user.name.toUpperCase()} added to group by ${data.user.name.toUpperCase()}`;
     },
-
     kickUserOutContext: async (
       _,
       { kickUserOutContextInput: { contextID, userID } },

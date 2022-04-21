@@ -20,6 +20,11 @@ module.exports = gql`
     _id: String!
   }
 
+  type UserTwoPersonContext {
+    _id: String!
+    userID: String!
+  }
+
   type User {
     _id: String!
     name: String!
@@ -29,6 +34,7 @@ module.exports = gql`
     isOnline: Boolean!
     token: String!
     contexts: [UserContext]
+    twoPersonContext: [UserTwoPersonContext]
   }
 
   type UserBasicInfo {
@@ -52,6 +58,18 @@ module.exports = gql`
     messages: [Message]
     createdAt: ID!
     createdBy: String!
+  }
+
+  type TwoPersonContextReturnUsers {
+    name: String!
+    email: String!
+    _id: String!
+  }
+
+  type TwoPersonContext {
+    _id: String!
+    users: [TwoPersonContextReturnUsers!]
+    messages: [Message]
   }
 
   input LoginInput {
@@ -113,6 +131,7 @@ module.exports = gql`
     otoLogin: User!
     logout(logoutInput: LogoutInput): String!
     createContext(contextInput: ContextInput): Context!
+    createTwoPersonContext(userId: ID!): TwoPersonContext!
     deleteContext(deleteContextInput: DeleteContextInput): String!
     leaveContext(leaveContextInput: LeaveContextInput): String!
     addUserToContext(addUserToContextInput: AddUserToContextInput): String!
