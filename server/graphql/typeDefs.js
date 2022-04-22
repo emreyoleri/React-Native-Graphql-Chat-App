@@ -4,9 +4,7 @@ module.exports = gql`
   type Message {
     _id: String!
     text: String!
-    createdByName: String!
-    createdByID: ID!
-    receiverID: ID!
+    contextID: ID!
     timestamps: ID!
   }
 
@@ -71,6 +69,10 @@ module.exports = gql`
     users: [TwoPersonContextReturnUsers!]
     messages: [Message]
   }
+  type MyContexts {
+    contexts: [Context]
+    twoPersonContexts: [TwoPersonContext]
+  }
 
   input LoginInput {
     email: String!
@@ -121,9 +123,9 @@ module.exports = gql`
     userID: String!
   }
 
-  type MyContexts {
-    contexts: [Context]
-    twoPersonContexts: [TwoPersonContext]
+  input SendMessageInput {
+    contextID: String!
+    text: String!
   }
 
   type Query {
@@ -136,6 +138,7 @@ module.exports = gql`
     login(loginInput: LoginInput): User!
     otoLogin: User!
     logout(logoutInput: LogoutInput): String!
+
     createContext(contextInput: ContextInput): Context!
     createTwoPersonContext(userId: ID!): TwoPersonContext!
     deleteContext(deleteContextInput: DeleteContextInput): String!
@@ -146,6 +149,8 @@ module.exports = gql`
     ): String!
     makeAnAdmin(makeAnAdminInput: MakeAnAdminInput): String!
     quitAdmin(quitAdminInput: QuitAdminInput): String!
+
+    sendMessage(sendMessageInput: SendMessageInput): Message!
   }
 
   type Subscription {

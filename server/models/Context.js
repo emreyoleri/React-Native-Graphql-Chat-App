@@ -47,9 +47,8 @@ const twoPersonContext = new Schema({
   messages: [
     {
       text: String,
-      createdByName: String,
       createdByID: Schema.Types.ObjectId,
-      receiverID: Schema.Types.ObjectId,
+      contextID: Schema.Types.ObjectId,
       timestamps: Number,
     },
   ],

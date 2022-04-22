@@ -4,11 +4,11 @@ const mongoose = require("mongoose");
 const Context = require("../../models/Context.js");
 const { twoPersonContext } = require("../../models/Context.js");
 const User = require("../../models/User.js");
+const Message = require("../../models/Message.js");
 const checkAuth = require("../../utils/checkAuth");
 
-// ! Tomorrow
 /**
- * Send Message
+ * Send Message +
  * get my message
  * delete message
  * sort message
@@ -510,6 +510,60 @@ module.exports = {
           return `${user.name.toUpperCase()} removed from admin by ${data.user.name.toUpperCase()}`;
         }
       );
+      return message;
+    },
+
+    sendMessage: async (
+      _,
+      { sendMessageInput: { contextID, text } },
+      context
+    ) => {
+      if (!contextID || !text)
+        throw new UserInputError(`"contextID" and "text" are required.`);
+      const data = await checkAuth(context);
+      if (data.error) throw new AuthenticationError(data.error);
+
+      const { user } = data;
+
+      const contextCheck = await Context.findOne({ _id: contextID });
+      const twoPersonContextCheck = await twoPersonContext.findOne({
+        _id: contextID,
+      });
+
+      const thisContext = contextCheck || twoPersonContextCheck;
+
+      if (!contextCheck && !twoPersonContextCheck)
+        throw new UserInputError(
+          `No context found matching this ID - ${contextID}.`
+        );
+
+      const isUserInThisContext = thisContext.users.find(
+        (u) => u._id.toString() === user._id.toString()
+      );
+
+      if (!isUserInThisContext)
+        throw new UserInputError(`User is not in this group. - ${user._id}`);
+
+      const newMessage = new Message({
+        text,
+        createdByID: user.id,
+        contextID: thisContext._id,
+        timestamps: new Date().getTime(),
+      });
+
+      const res = await newMessage.save();
+      const { _id, timestamps } = res;
+      const message = {
+        text,
+        contextID,
+        timestamps,
+        _id,
+      };
+
+      thisContext.messages.push(message);
+
+      thisContext.save();
+
       return message;
     },
   },
