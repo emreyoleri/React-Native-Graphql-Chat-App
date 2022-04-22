@@ -6,6 +6,14 @@ const { twoPersonContext } = require("../../models/Context.js");
 const User = require("../../models/User.js");
 const checkAuth = require("../../utils/checkAuth");
 
+// ! Tomorrow
+/**
+ * Send Message
+ * get my message
+ * delete message
+ * sort message
+ */
+
 module.exports = {
   Query: {
     getMyContexts: async (_, {}, context) => {
@@ -140,6 +148,9 @@ module.exports = {
 
       if (!user)
         throw new UserInputError(`No user found matching this ID - ${userId}.`);
+
+      if (admin._id.toString() === user._id.toString())
+        throw new UserInputError(`No two people in this group can be the same`);
 
       const findTwoPersonContext = admin.twoPersonContext.find(
         (ctx) => ctx.userID.toString() === user._id.toString()
