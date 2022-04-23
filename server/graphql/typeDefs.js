@@ -135,6 +135,11 @@ module.exports = gql`
     token: String!
   }
 
+  input DeleteMessageInput {
+    messageID: String!
+    contextID: String!
+  }
+
   type Query {
     getUsers: [User!]!
     getMyContexts: MyContexts!
@@ -158,6 +163,7 @@ module.exports = gql`
     quitAdmin(quitAdminInput: QuitAdminInput): String!
 
     sendMessage(sendMessageInput: SendMessageInput): Message!
+    deleteMessage(deleteMessageInput: DeleteMessageInput): String!
   }
 
   type Subscription {

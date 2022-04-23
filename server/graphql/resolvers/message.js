@@ -74,6 +74,78 @@ module.exports = {
 
       return message;
     },
+    deleteMessage: async (
+      _,
+      { deleteMessageInput: { contextID, messageID } },
+      context
+    ) => {
+      if (!contextID || !messageID)
+        throw new UserInputError(`"contextID" and "messageID" are required.`);
+      const data = await checkAuth(context);
+      if (data.error) throw new AuthenticationError(data.error);
+
+      const { user } = data;
+
+      const contextCheck = await Context.findOne({ _id: contextID });
+      const twoPersonContextCheck = await twoPersonContext.findOne({
+        _id: contextID,
+      });
+
+      const thisContext = contextCheck || twoPersonContextCheck;
+
+      if (!contextCheck && !twoPersonContextCheck)
+        throw new UserInputError(
+          `No context found matching this ID - ${contextID}.`
+        );
+
+      const isUserInThisContext = thisContext.users.find(
+        (u) => u._id.toString() === user._id.toString()
+      );
+
+      if (!isUserInThisContext)
+        throw new UserInputError(`User is not in this group. - ${user._id}`);
+
+      const message = await Message.findOne({ _id: messageID });
+
+      if (!message)
+        throw new UserInputError(
+          `No message found matching this ID - ${messageID}.`
+        );
+
+      if (message.createdBy.toString() !== user._id.toString())
+        throw new AuthenticationError(
+          "Only the user who sent the message can delete the message."
+        );
+
+      message.isDeleted = true;
+
+      await message.save();
+
+      const { messages } = thisContext;
+
+      const messageIndex = messages.findIndex(
+        (msg) => msg._id.toString() === messageID
+      );
+
+      const { createdBy, text, _id, isDeleted, ContextID, timestamps } =
+        messages[messageIndex];
+
+      if (isDeleted)
+        throw new UserInputError(`this message has already been deleted`);
+
+      messages[messageIndex] = {
+        _id,
+        text,
+        createdBy,
+        ContextID,
+        timestamps,
+        isDeleted: true,
+      };
+
+      await thisContext.save();
+
+      return "Message deleted successfully.";
+    },
   },
   Subscription: {
     newMessage: {
