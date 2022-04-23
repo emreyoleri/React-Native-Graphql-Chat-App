@@ -21,10 +21,13 @@ const contextSchema = new Schema({
   messages: [
     {
       text: String,
-      createdByName: String,
-      createdByID: Schema.Types.ObjectId,
-      receiverID: Schema.Types.ObjectId,
+      createdBy: Schema.Types.ObjectId,
+      contextID: Schema.Types.ObjectId,
       timestamps: Number,
+      isDeleted: {
+        type: Boolean,
+        default: false,
+      },
     },
   ],
   createdAt: Number,
@@ -47,7 +50,7 @@ const twoPersonContext = new Schema({
   messages: [
     {
       text: String,
-      createdByID: Schema.Types.ObjectId,
+      createdBy: Schema.Types.ObjectId,
       contextID: Schema.Types.ObjectId,
       timestamps: Number,
       isDeleted: {

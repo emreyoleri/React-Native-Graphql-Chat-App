@@ -2,7 +2,7 @@ const { model, Schema } = require("mongoose");
 
 const messageSchema = new Schema({
   text: String,
-  createdByID: Schema.Types.ObjectId,
+  createdBy: Schema.Types.ObjectId,
   contextID: Schema.Types.ObjectId,
   timestamps: Number,
   isDeleted: {

@@ -6,6 +6,7 @@ module.exports = gql`
     text: String!
     contextID: ID!
     timestamps: ID!
+    createdBy: ID!
     isDeleted: Boolean!
   }
 

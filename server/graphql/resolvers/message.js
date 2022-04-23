@@ -46,20 +46,21 @@ module.exports = {
 
       const newMessage = new Message({
         text,
-        createdByID: user.id,
+        createdBy: user._id,
         contextID: thisContext._id,
         timestamps: new Date().getTime(),
       });
 
       const res = await newMessage.save();
 
-      const { _id, timestamps, isDeleted } = res;
+      const { _id, timestamps, isDeleted, createdBy } = res;
 
       const message = {
+        _id,
         text,
         contextID,
         timestamps,
-        _id,
+        createdBy,
         isDeleted,
       };
 
@@ -111,7 +112,7 @@ module.exports = {
           );
 
           if (!userInThisContext && !userInThisTwoPersonContext) {
-            errors.context = `No context found matching this ID - ${contextID}.`;
+            errors.context = `No context found matching this ID in user contexts - ${contextID}.`;
             console.error(errors);
             return false;
           }
