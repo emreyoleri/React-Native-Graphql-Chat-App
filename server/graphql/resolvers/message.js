@@ -119,7 +119,20 @@ module.exports = {
 
       message.isDeleted = true;
 
-      await message.save();
+      const res = await message.save();
+
+      const messageDeleted = {
+        _id: res._id,
+        text: res.text,
+        contextID: res.contextID,
+        timestamps: res.timestamps,
+        createdBy: res.createdBy,
+        isDeleted: res.isDeleted,
+      };
+
+      pubsub.publish("MESSAGE_DELETED", {
+        messageDeleted: messageDeleted,
+      });
 
       const { messages } = thisContext;
 
@@ -149,49 +162,10 @@ module.exports = {
   },
   Subscription: {
     newMessage: {
-      subscribe: withFilter(
-        () => pubsub.asyncIterator("NEW_MESSAGE"),
-        async (payload, variables) => {
-          // ! TODO: SEND NOTIFICATION
-
-          const { contextID, token } = variables.newMessageInput;
-
-          let userDoc;
-
-          const errors = {};
-
-          try {
-            const user = jwt.verify(token, SECRET_KEY);
-            if (user) {
-              const fullUserInfo = await User.findOne({ email: user.email });
-
-              userDoc = { ...fullUserInfo._doc };
-            }
-          } catch (error) {
-            errors.token = "Invalid/Expired token";
-          }
-
-          if (errors.token) {
-            console.error("errors:", errors);
-            return false;
-          }
-
-          const userInThisContext = userDoc.contexts.find(
-            (ctx) => ctx._id.toString() === contextID
-          );
-          const userInThisTwoPersonContext = userDoc.twoPersonContext.find(
-            (ctx) => ctx._id.toString() === contextID
-          );
-
-          if (!userInThisContext && !userInThisTwoPersonContext) {
-            errors.context = `No context found matching this ID in user contexts - ${contextID}.`;
-            console.error(errors);
-            return false;
-          }
-
-          return true;
-        }
-      ),
+      subscribe: () => pubsub.asyncIterator("NEW_MESSAGE"),
+    },
+    messageDeleted: {
+      subscribe: () => pubsub.asyncIterator("MESSAGE_DELETED"),
     },
   },
 };

@@ -130,11 +130,6 @@ module.exports = gql`
     text: String!
   }
 
-  input NewMessageInput {
-    contextID: String!
-    token: String!
-  }
-
   input DeleteMessageInput {
     messageID: String!
     contextID: String!
@@ -169,6 +164,7 @@ module.exports = gql`
   type Subscription {
     userLoged: UserBasicInfo!
     getOnlineUserCount: Int!
-    newMessage(newMessageInput: NewMessageInput): Message!
+    newMessage: Message!
+    messageDeleted: Message!
   }
 `;
