@@ -50,6 +50,10 @@ const twoPersonContext = new Schema({
       createdByID: Schema.Types.ObjectId,
       contextID: Schema.Types.ObjectId,
       timestamps: Number,
+      isDeleted: {
+        type: Boolean,
+        default: false,
+      },
     },
   ],
 });

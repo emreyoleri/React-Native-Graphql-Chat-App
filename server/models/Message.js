@@ -5,6 +5,10 @@ const messageSchema = new Schema({
   createdByID: Schema.Types.ObjectId,
   contextID: Schema.Types.ObjectId,
   timestamps: Number,
+  isDeleted: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 module.exports = model("Message", messageSchema);

@@ -6,6 +6,7 @@ module.exports = gql`
     text: String!
     contextID: ID!
     timestamps: ID!
+    isDeleted: Boolean!
   }
 
   input userInput {
@@ -128,6 +129,11 @@ module.exports = gql`
     text: String!
   }
 
+  input NewMessageInput {
+    contextID: String!
+    token: String!
+  }
+
   type Query {
     getUsers: [User!]!
     getMyContexts: MyContexts!
@@ -156,5 +162,6 @@ module.exports = gql`
   type Subscription {
     userLoged: UserBasicInfo!
     getOnlineUserCount: Int!
+    newMessage(newMessageInput: NewMessageInput): Message!
   }
 `;

@@ -1,16 +1,19 @@
 const userResolvers = require("./user.js");
-const contextResolver = require("./context.js");
+const contextResolvers = require("./context.js");
+const messageResolvers = require("./message.js");
 
 module.exports = {
   Query: {
     ...userResolvers.Query,
-    ...contextResolver.Query,
+    ...contextResolvers.Query,
   },
   Mutation: {
     ...userResolvers.Mutation,
-    ...contextResolver.Mutation,
+    ...contextResolvers.Mutation,
+    ...messageResolvers.Mutation,
   },
   Subscription: {
     ...userResolvers.Subscription,
+    ...messageResolvers.Subscription,
   },
 };
