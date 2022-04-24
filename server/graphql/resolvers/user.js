@@ -160,6 +160,29 @@ module.exports = {
 
       return "Logout Successfully";
     },
+    changeUserPhoto: async (
+      _,
+      { changeUserPhotoInput: { photoURL } },
+      context
+    ) => {
+      const data = await checkAuth(context);
+      if (data.error) throw new AuthenticationError(data.error);
+
+      const isImage = (url) => {
+        return /\.(jpg|jpeg|png|webp|avif|gif|svg)$/.test(url);
+      };
+
+      if (!isImage(photoURL))
+        throw new UserInputError(`This url is not in image format.`);
+
+      const updatedUser = await User.findOneAndUpdate(
+        { _id: data.user._id },
+        { photoURL },
+        { new: true }
+      );
+
+      return { ...updatedUser._doc };
+    },
   },
   Subscription: {
     userLoged: {

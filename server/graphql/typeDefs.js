@@ -83,15 +83,14 @@ module.exports = gql`
     password: String!
   }
 
-  input LogoutInput {
-    email: String!
-    password: String!
-  }
-
   input RegisterInput {
     name: String!
     email: String!
     password: String!
+  }
+
+  input ChangeUserPhotoInput {
+    photoURL: String!
   }
 
   input ContextInput {
@@ -147,7 +146,8 @@ module.exports = gql`
     register(registerInput: RegisterInput): User!
     login(loginInput: LoginInput): User!
     otoLogin: User!
-    logout(logoutInput: LogoutInput): String!
+    logout: String!
+    changeUserPhoto(changeUserPhotoInput: ChangeUserPhotoInput): User!
 
     createContext(contextInput: ContextInput): Context!
     createTwoPersonContext(userId: ID!): TwoPersonContext!
