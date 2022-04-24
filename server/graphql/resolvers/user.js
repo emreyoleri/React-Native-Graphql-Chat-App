@@ -7,6 +7,7 @@ const User = require("../../models/User");
 const {
   validateRegisterInput,
   validateLoginInput,
+  validateChangeUserPhotoInput,
 } = require("../../utils/validators");
 const checkAuth = require("../../utils/checkAuth");
 
@@ -28,7 +29,7 @@ function generateToken({ email, password }) {
       password,
     },
     SECRET_KEY,
-    { expiresIn: 60 * 60 * 24, algorithm: "HS256" }
+    { expiresIn: 60 * 60 * 24 * 7, algorithm: "HS256" }
   );
   return token;
 }
@@ -168,12 +169,10 @@ module.exports = {
       const data = await checkAuth(context);
       if (data.error) throw new AuthenticationError(data.error);
 
-      const isImage = (url) => {
-        return /\.(jpg|jpeg|png|webp|avif|gif|svg)$/.test(url);
-      };
+      const { errors, valid } = validateChangeUserPhotoInput(photoURL);
+      if (!valid) throw new UserInputError("Errors", { errors });
 
-      if (!isImage(photoURL))
-        throw new UserInputError(`This url is not in image format.`);
+      // !
 
       const updatedUser = await User.findOneAndUpdate(
         { _id: data.user._id },

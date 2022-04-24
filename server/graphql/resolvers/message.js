@@ -1,4 +1,3 @@
-const { validateCreateContextInput } = require("../../utils/validators");
 const { AuthenticationError, UserInputError } = require("apollo-server");
 const { PubSub, withFilter } = require("graphql-subscriptions");
 const jwt = require("jsonwebtoken");
@@ -7,9 +6,12 @@ const { twoPersonContext } = require("../../models/Context.js");
 const User = require("../../models/User.js");
 const Message = require("../../models/Message.js");
 const checkAuth = require("../../utils/checkAuth");
+const {
+  validateSendMessageInput,
+  validateDeleteMessageInput,
+} = require("../../utils/validators");
 
 const pubsub = new PubSub();
-const SECRET_KEY = process.env.SECRET_KEY;
 
 module.exports = {
   Mutation: {
@@ -18,8 +20,9 @@ module.exports = {
       { sendMessageInput: { contextID, text } },
       context
     ) => {
-      if (!contextID || !text)
-        throw new UserInputError(`"contextID" and "text" are required.`);
+      const { errors, valid } = validateSendMessageInput(contextID, text);
+      if (!valid) throw new UserInputError("Errors", { errors });
+
       const data = await checkAuth(context);
       if (data.error) throw new AuthenticationError(data.error);
 
@@ -79,8 +82,12 @@ module.exports = {
       { deleteMessageInput: { contextID, messageID } },
       context
     ) => {
-      if (!contextID || !messageID)
-        throw new UserInputError(`"contextID" and "messageID" are required.`);
+      const { errors, valid } = validateDeleteMessageInput(
+        contextID,
+        messageID
+      );
+      if (!valid) throw new UserInputError("Errors", { errors });
+
       const data = await checkAuth(context);
       if (data.error) throw new AuthenticationError(data.error);
 
@@ -144,7 +151,7 @@ module.exports = {
         messages[messageIndex];
 
       if (isDeleted)
-        throw new UserInputError(`this message has already been deleted`);
+        throw new UserInputError(`This message has already been deleted`);
 
       messages[messageIndex] = {
         _id,

@@ -1,6 +1,16 @@
 const { AuthenticationError, UserInputError } = require("apollo-server");
 const mongoose = require("mongoose");
-const { validateCreateContextInput } = require("../../utils/validators");
+const {
+  validateCreateContextInput,
+  validateCreateTwoPersonContextInput,
+  validateDeleteContextInput,
+  validateLeaveContextInput,
+  validateAddUserToContextInput,
+  validateKickUserOutContextInput,
+  validateMakeAnContextInput,
+  validateQuitAdminInput,
+  validateChangeContextPhotoInput,
+} = require("../../utils/validators");
 const Context = require("../../models/Context.js");
 const { twoPersonContext } = require("../../models/Context.js");
 const User = require("../../models/User.js");
@@ -53,16 +63,13 @@ module.exports = {
       { contextInput: { name, users, photoURL } },
       context
     ) => {
-      if (!name || !users)
-        throw new UserInputError(`"name" and "users" are required.`);
+      const { errors, valid } = validateCreateContextInput(name, users);
+      if (!valid) throw new UserInputError("Errors", { errors });
 
       const data = await checkAuth(context);
       if (data.error) throw new AuthenticationError(data.error);
 
       const admin = data.user;
-
-      const { errors, valid } = validateCreateContextInput(name, users);
-      if (!valid) throw new UserInputError("Errors", { errors });
 
       let emailsOfContextUsers = [];
 
@@ -144,7 +151,8 @@ module.exports = {
       return res;
     },
     createTwoPersonContext: async (_, { userId }, context) => {
-      if (!userId) throw new UserInputError(`"userId" is required.`);
+      const { errors, valid } = validateCreateTwoPersonContextInput(userId);
+      if (!valid) throw new UserInputError("Errors", { errors });
 
       const data = await checkAuth(context);
       if (data.error) throw new AuthenticationError(data.error);
@@ -191,7 +199,8 @@ module.exports = {
       return res;
     },
     deleteContext: async (_, { deleteContextInput: { _id } }, context) => {
-      if (!_id) throw new UserInputError(`"_id" is required.`);
+      const { errors, valid } = validateDeleteContextInput(_id);
+      if (!valid) throw new UserInputError("Errors", { errors });
 
       const data = await checkAuth(context);
       if (data.error) throw new AuthenticationError(data.error);
@@ -223,7 +232,8 @@ module.exports = {
       return "Context deleted successfully";
     },
     leaveContext: async (_, { leaveContextInput: { _id } }, context) => {
-      if (!_id) throw new UserInputError(`"_id" is required.`);
+      const { errors, valid } = validateLeaveContextInput(_id);
+      if (!valid) throw new UserInputError("Errors", { errors });
 
       const data = await checkAuth(context);
       if (data.error) throw new AuthenticationError(data.error);
@@ -285,8 +295,11 @@ module.exports = {
       { addUserToContextInput: { contextID, userID } },
       context
     ) => {
-      if (!contextID || !userID)
-        throw new UserInputError(`"contextID" and "userID" are required.`);
+      const { errors, valid } = validateAddUserToContextInput(
+        contextID,
+        userID
+      );
+      if (!valid) throw new UserInputError("Errors", { errors });
 
       const data = await checkAuth(context);
       if (data.error) throw new AuthenticationError(data.error);
@@ -348,8 +361,11 @@ module.exports = {
       { kickUserOutContextInput: { contextID, userID } },
       context
     ) => {
-      if (!contextID || !userID)
-        throw new UserInputError(`"contextID" and "userID" are required.`);
+      const { errors, valid } = validateKickUserOutContextInput(
+        contextID,
+        userID
+      );
+      if (!valid) throw new UserInputError("Errors", { errors });
 
       const data = await checkAuth(context);
       if (data.error) throw new AuthenticationError(data.error);
@@ -406,8 +422,8 @@ module.exports = {
       { makeAnAdminInput: { userID, contextID } },
       context
     ) => {
-      if (!contextID || !userID)
-        throw new UserInputError(`"contextID" and "userID" are required.`);
+      const { errors, valid } = validateMakeAnContextInput(contextID, userID);
+      if (!valid) throw new UserInputError("Errors", { errors });
 
       const data = await checkAuth(context);
       if (data.error) throw new AuthenticationError(data.error);
@@ -422,6 +438,15 @@ module.exports = {
           if (!$context)
             throw new UserInputError(
               `No context found matching this ID - ${contextID}.`
+            );
+
+          const isUserInContext = $context.users.find(
+            (u) => u._id.toString() === userID
+          );
+
+          if (!isUserInContext)
+            throw new UserInputError(
+              "The user is not included in this context."
             );
 
           const isUserAdmin = $context.users.find(
@@ -442,14 +467,6 @@ module.exports = {
           if (isAdmin)
             throw new UserInputError(`User with ID (${_id}) already admin.`);
 
-          if (
-            $context.users[userIndex]._id.toString() ===
-            $context.createdBy.toString()
-          )
-            throw new UserInputError(
-              "The user who created the group cannot be removed from the admin"
-            );
-
           $context.users[userIndex] = {
             name,
             email,
@@ -469,8 +486,8 @@ module.exports = {
       { quitAdminInput: { contextID, userID } },
       context
     ) => {
-      if (!contextID || !userID)
-        throw new UserInputError(`"contextID" and "userID" are required.`);
+      const { errors, valid } = validateQuitAdminInput(contextID, userID);
+      if (!valid) throw new UserInputError("Errors", { errors });
 
       const data = await checkAuth(context);
       if (data.error) throw new AuthenticationError(data.error);
@@ -500,7 +517,9 @@ module.exports = {
             (u) => u._id.toString() === userID
           );
 
-          const { name, email, _id } = $context.users[userIndex];
+          const { name, email, _id, isAdmin } = $context.users[userIndex];
+          if (!isAdmin)
+            throw new AuthenticationError("User is not already admin.");
 
           if ($context.createdBy.toString() === userID)
             throw new UserInputError(
@@ -527,8 +546,11 @@ module.exports = {
       { changeContextPhotoInput: { contextID, photoURL } },
       context
     ) => {
-      if (!contextID || !photoURL)
-        throw new UserInputError(`"contextID" and "photoURL" are required.`);
+      const { errors, valid } = validateChangeContextPhotoInput(
+        contextID,
+        photoURL
+      );
+      if (!valid) throw new UserInputError("Errors", { errors });
 
       const data = await checkAuth(context);
       if (data.error) throw new AuthenticationError(data.error);
