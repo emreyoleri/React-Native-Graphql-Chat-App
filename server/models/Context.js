@@ -2,6 +2,11 @@ const { model, Schema } = require("mongoose");
 
 const contextSchema = new Schema({
   name: String,
+  photoURL: {
+    type: String,
+    default:
+      "https://www.iconbunny.com/icons/media/catalog/product/cache/2/thumbnail/600x/1b89f2fc96fc819c2a7e15c7e545e8a9/1/5/1543.1-clients-icon-iconbunny.jpg",
+  },
   users: [
     {
       name: {

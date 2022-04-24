@@ -48,7 +48,11 @@ module.exports = {
     },
   },
   Mutation: {
-    createContext: async (_, { contextInput: { name, users } }, context) => {
+    createContext: async (
+      _,
+      { contextInput: { name, users, photoURL } },
+      context
+    ) => {
       if (!name || !users)
         throw new UserInputError(`"name" and "users" are required.`);
 
@@ -105,14 +109,26 @@ module.exports = {
       if (usersInfo.length < 2)
         throw new UserInputError("Groups cannot be for 1 person.");
 
-      const newContext = new Context({
+      const isImage = (url) => {
+        return /\.(jpg|jpeg|png|webp|avif|gif|svg)$/.test(url);
+      };
+
+      const contextInfo = {
         name,
         users: usersInfo,
         messages: [],
         createdBy: mongoose.Types.ObjectId(admin._id),
         createdAt: new Date().getTime(),
-      });
+      };
 
+      let newContext;
+      if (!photoURL) {
+        newContext = new Context(contextInfo);
+      } else if (photoURL && !isImage(photoURL))
+        throw new UserInputError(`This url is not in image format.`);
+      else {
+        newContext = new Context({ ...contextInfo, photoURL });
+      }
       const res = await newContext.save();
 
       [...emailsOfContextUsers, admin.email].forEach(async (email) => {

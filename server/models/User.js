@@ -12,6 +12,11 @@ const userSchema = new Schema({
   password: String,
   timestamps: Number,
   isOnline: Boolean,
+  photoURL: {
+    type: String,
+    default:
+      "https://p.kindpng.com/picc/s/105-1055656_account-user-profile-avatar-avatar-user-profile-icon.png",
+  },
   contexts: {
     type: [
       {

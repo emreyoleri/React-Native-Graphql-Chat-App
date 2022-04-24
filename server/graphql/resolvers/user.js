@@ -28,7 +28,7 @@ function generateToken({ email, password }) {
       password,
     },
     SECRET_KEY,
-    { expiresIn: 60 * 60, algorithm: "HS256" }
+    { expiresIn: 60 * 60 * 24, algorithm: "HS256" }
   );
   return token;
 }

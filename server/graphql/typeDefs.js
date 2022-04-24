@@ -35,6 +35,7 @@ module.exports = gql`
     token: String!
     contexts: [UserContext]
     twoPersonContext: [UserTwoPersonContext]
+    photoURL: String!
   }
 
   type UserBasicInfo {
@@ -58,6 +59,7 @@ module.exports = gql`
     messages: [Message]
     createdAt: ID!
     createdBy: String!
+    photoURL: String!
   }
 
   type TwoPersonContextReturnUsers {
@@ -95,6 +97,7 @@ module.exports = gql`
   input ContextInput {
     name: String!
     users: [userInput]
+    photoURL: String
   }
 
   input DeleteContextInput {
