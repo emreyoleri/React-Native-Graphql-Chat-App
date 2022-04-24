@@ -127,6 +127,11 @@ module.exports = gql`
     userID: String!
   }
 
+  input ChangeContextPhotoInput {
+    contextID: String!
+    photoURL: String!
+  }
+
   input SendMessageInput {
     contextID: String!
     text: String!
@@ -159,6 +164,9 @@ module.exports = gql`
     ): String!
     makeAnAdmin(makeAnAdminInput: MakeAnAdminInput): String!
     quitAdmin(quitAdminInput: QuitAdminInput): String!
+    changeContextPhoto(
+      changeContextPhotoInput: ChangeContextPhotoInput
+    ): Context!
 
     sendMessage(sendMessageInput: SendMessageInput): Message!
     deleteMessage(deleteMessageInput: DeleteMessageInput): String!

@@ -287,6 +287,7 @@ module.exports = {
     ) => {
       if (!contextID || !userID)
         throw new UserInputError(`"contextID" and "userID" are required.`);
+
       const data = await checkAuth(context);
       if (data.error) throw new AuthenticationError(data.error);
 
@@ -349,6 +350,7 @@ module.exports = {
     ) => {
       if (!contextID || !userID)
         throw new UserInputError(`"contextID" and "userID" are required.`);
+
       const data = await checkAuth(context);
       if (data.error) throw new AuthenticationError(data.error);
 
@@ -415,7 +417,7 @@ module.exports = {
       if (!user)
         throw new UserInputError(`No user found matching this ID - ${userID}.`);
 
-      const message = await Context.findOne({ _id: contextID }).then(
+      const contextReturn = await Context.findOne({ _id: contextID }).then(
         async ($context) => {
           if (!$context)
             throw new UserInputError(
@@ -460,7 +462,7 @@ module.exports = {
           return `${user.name.toUpperCase()} declared admin by ${data.user.name.toUpperCase()}`;
         }
       );
-      return message;
+      return contextReturn;
     },
     quitAdmin: async (
       _,
@@ -469,6 +471,7 @@ module.exports = {
     ) => {
       if (!contextID || !userID)
         throw new UserInputError(`"contextID" and "userID" are required.`);
+
       const data = await checkAuth(context);
       if (data.error) throw new AuthenticationError(data.error);
 
@@ -477,7 +480,7 @@ module.exports = {
       if (!user)
         throw new UserInputError(`No user found matching this ID - ${userID}.`);
 
-      const message = await Context.findOne({ _id: contextID }).then(
+      const contextReturn = await Context.findOne({ _id: contextID }).then(
         async ($context) => {
           if (!$context)
             throw new UserInputError(
@@ -516,7 +519,51 @@ module.exports = {
           return `${user.name.toUpperCase()} removed from admin by ${data.user.name.toUpperCase()}`;
         }
       );
-      return message;
+      return contextReturn;
+    },
+
+    changeContextPhoto: async (
+      _,
+      { changeContextPhotoInput: { contextID, photoURL } },
+      context
+    ) => {
+      if (!contextID || !photoURL)
+        throw new UserInputError(`"contextID" and "photoURL" are required.`);
+
+      const data = await checkAuth(context);
+      if (data.error) throw new AuthenticationError(data.error);
+
+      const contextReturn = await Context.findOne({ _id: contextID }).then(
+        async ($context) => {
+          if (!$context)
+            throw new UserInputError(
+              `No context found matching this ID - ${contextID}.`
+            );
+
+          const isUserAdmin = $context.users.find(
+            (u) => u._id.toString() === data.user._id.toString()
+          );
+
+          if (!isUserAdmin.isAdmin)
+            throw new AuthenticationError(
+              "Only group admins can change group profile photo."
+            );
+
+          const isImage = (url) => {
+            return /\.(jpg|jpeg|png|webp|avif|gif|svg)$/.test(url);
+          };
+
+          if (!isImage(photoURL))
+            throw new UserInputError(`This url is not in image format.`);
+
+          $context.photoURL = photoURL;
+
+          const updatedContext = await $context.save();
+
+          return { ...updatedContext._doc };
+        }
+      );
+      return contextReturn;
     },
   },
 };
